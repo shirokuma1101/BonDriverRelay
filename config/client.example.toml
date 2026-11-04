@@ -1,0 +1,22 @@
+# DLL と同名の .toml として、DLL の横へ置く。
+schema_version = 1
+
+[server]
+host = "127.0.0.1" # IPv4 リテラル
+port = 57230
+connect_timeout_ms = 5000
+request_timeout_ms = 20000
+
+[client]
+tuner_group = "default"
+receive_queue_bytes = 4194280
+priority = 0 # 未処理 Tune の受付順位。既存受信は奪わない
+exclusive = false
+reconnect = false # 切断後はアプリでBonDriverを開き直す
+selection_timeout_ms = 15000 # 複数候補を試す全体の期限（ms）
+
+# 同じgroup・catalogの候補を設定順に試す。最大7件追加可。
+# Open時の接続失敗、明示TuneでTunerBusyの場合に選択する。
+# [[fallback_servers]]
+# host = "192.168.1.20"
+# port = 57230

@@ -1,0 +1,59 @@
+# server.toml としてコピーし、実際のチューナー定義を追加する。
+schema_version = 1
+
+[network]
+bind_address = "127.0.0.1" # LAN 公開時だけ明示変更
+port = 57230
+max_clients = 8
+connect_timeout_ms = 5000
+io_timeout_ms = 15000
+startup_timeout_ms = 60000 # --serve/--serviceの起動期限。超過時はプロセス異常終了
+shutdown_timeout_ms = 10000 # 停止猶予。超過時はサーバープロセスを終了1460で強制終了
+
+[distribution]
+queue_bytes_per_client = 4194280 # 188 * 22310
+overflow_policy = "disconnect" # drop_oldest は欠損を許容する用途だけ
+
+[decoder]
+enabled = false
+dll_path = '' # 有効時: 同bit数の libaribb25 v0.2.10 の絶対パス
+failure_policy = "stop_stream" # passthrough はエラー状態付きの元TS透過
+multi2_round = 4
+simd_mode = 0 # scalar、CPUに合わせて明示変更する場合だけ0..3
+
+[logging]
+level = "info"
+directory = 'logs' # 設定ファイル基準
+rotate_bytes = 10485760
+rotate_files = 3
+status_interval_ms = 30000 # 接続・チューナー・TS・キューの診断ログ周期
+
+[monitoring]
+enabled = false # trueでWeb UI / JSON / Prometheusを有効化
+name = "local" # サーバー識別名、1..64 ASCII英数字と . _ -
+bind_address = "127.0.0.1" # LAN閲覧・他サーバーからの収集時だけ明示変更
+port = 57231 # TS用ポートとは分ける
+peer_interval_ms = 5000
+peer_timeout_ms = 500
+
+# 各peer側でもmonitoringを有効化する。HTTPの状態取得のみ。
+# [[monitoring.peers]]
+# name = "server-b"
+# host = "192.168.1.20"
+# port = 57231
+
+[reload]
+enabled = false # trueで設定ファイル変更を監視
+interval_ms = 1000
+# 実行中に反映可能: logging.level / logging.status_interval_ms のみ。
+# 他の項目を同時変更した場合は全更新を拒否し、現在の設定で継続する。
+
+# [[tuners]]
+# name = "px4-terrestrial-0"
+# group = "default" # 同じcatalogのチューナーだけを同じgroupにする
+# dll_path = 'C:\TrustedDrivers\BonDriver_PX4_T0.dll'
+
+# [[tuners]]
+# name = "px4-terrestrial-1"
+# group = "default"
+# dll_path = 'C:\TrustedDrivers\BonDriver_PX4_T1.dll'

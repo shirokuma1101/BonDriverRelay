@@ -1,0 +1,4 @@
+LIBRARY BonDriver_Relay
+EXPORTS
+    CreateBonDriver
+    GetRelayStatus

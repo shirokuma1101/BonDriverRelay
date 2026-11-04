@@ -1,0 +1,3 @@
+#pragma once
+
+#define BDR_VERSION "@PROJECT_VERSION@"
