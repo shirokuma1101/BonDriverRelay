@@ -152,14 +152,17 @@ port = 57230
 
 ### 7. Windowsサービスとして使う場合
 
-コンソールを終了してから、管理者のPowerShellで登録します。サービス名は `BonDriverRelay` としてください。
+コンソールを終了してから、管理者のPowerShellで登録します。サービス名は `BonDriverRelay` としてください。次の例では、現在PowerShellを実行しているWindowsアカウントをサービスにも使用します。
 
 ```powershell
-$serviceAccount = Get-Credential
+$serviceUser = whoami
+$serviceAccount = Get-Credential -UserName $serviceUser -Message 'サービス実行アカウントのWindowsパスワードを入力してください（PINではありません）'
 $serviceBinary = '"C:\Apps\BonDriverRelay\BonDriverRelayServer.exe" --service --config "C:\Apps\BonDriverRelay\server.toml"'
 New-Service -Name BonDriverRelay -DisplayName 'BonDriverRelay' -BinaryPathName $serviceBinary -StartupType Automatic -Credential $serviceAccount
 Start-Service BonDriverRelay
 ```
+
+別のアカウントを使う場合は、`$serviceUser` にそのアカウント名を指定してください。ローカルユーザーは `PC名\ユーザー名` または `.\ユーザー名`、ドメインユーザーは `ドメイン名\ユーザー名` の形式にします。表示名だけを入力しないでください。「指定されたドメインがないか、またはアクセスできません」と表示された場合は、まず `$serviceAccount.UserName` の表記と、そのアカウントが対象PCで利用できることを確認してください。
 
 指定するアカウントには「サービスとしてログオン」の権利、EXE・設定・DLLの読み取り権限、`logs` フォルダーの書き込み権限、カードリーダーへのアクセス権限が必要です。カード接続方式がそのアカウント・サービス環境でも利用できるようにしてください。普段のユーザーで起動したアプリの環境はそのまま引き継がれません。
 
