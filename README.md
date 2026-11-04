@@ -152,19 +152,34 @@ port = 57230
 
 ### 7. Windowsサービスとして使う場合
 
-コンソールを終了してから、管理者のPowerShellで登録します。サービス名は `BonDriverRelay` としてください。次の例では、現在PowerShellを実行しているWindowsアカウントをサービスにも使用します。
+コンソールを終了してから、管理者のPowerShellで操作します。サービス名は `BonDriverRelay` としてください。以下はLocalSystemで実行する手順です。ユーザー名・パスワードの入力は不要です。
+
+**新しく登録する場合**
+
+配置先が異なる場合は、EXEと設定ファイルのパスを変更してください。`New-Service` で `-Credential` を指定しない場合、実行アカウントはLocalSystemになります。
 
 ```powershell
-$serviceUser = whoami
-$serviceAccount = Get-Credential -UserName $serviceUser -Message 'サービス実行アカウントのWindowsパスワードを入力してください（PINではありません）'
 $serviceBinary = '"C:\Apps\BonDriverRelay\BonDriverRelayServer.exe" --service --config "C:\Apps\BonDriverRelay\server.toml"'
-New-Service -Name BonDriverRelay -DisplayName 'BonDriverRelay' -BinaryPathName $serviceBinary -StartupType Automatic -Credential $serviceAccount
-Start-Service BonDriverRelay
+New-Service -Name BonDriverRelay -DisplayName 'BonDriverRelay' -BinaryPathName $serviceBinary -StartupType Automatic -ErrorAction Stop
+sc.exe start BonDriverRelay
 ```
 
-別のアカウントを使う場合は、`$serviceUser` にそのアカウント名を指定してください。ローカルユーザーは `PC名\ユーザー名` または `.\ユーザー名`、ドメインユーザーは `ドメイン名\ユーザー名` の形式にします。表示名だけを入力しないでください。「指定されたドメインがないか、またはアクセスできません」と表示された場合は、まず `$serviceAccount.UserName` の表記と、そのアカウントが対象PCで利用できることを確認してください。
+**すでに登録してあるサービスをLocalSystemへ変更する場合**
 
-指定するアカウントには「サービスとしてログオン」の権利、EXE・設定・DLLの読み取り権限、`logs` フォルダーの書き込み権限、カードリーダーへのアクセス権限が必要です。カード接続方式がそのアカウント・サービス環境でも利用できるようにしてください。普段のユーザーで起動したアプリの環境はそのまま引き継がれません。
+再登録せず、停止して実行アカウントだけを変更します。
+
+```powershell
+Stop-Service BonDriverRelay -ErrorAction Stop
+sc.exe config BonDriverRelay obj= LocalSystem
+if ($LASTEXITCODE -ne 0) { throw 'サービスの実行アカウントを変更できませんでした。' }
+sc.exe start BonDriverRelay
+```
+
+状態は `Get-Service BonDriverRelay` で確認できます。起動に失敗した場合は、`sc.exe start` に表示されるエラー番号と `logs` フォルダーのログを確認してください。
+
+LocalSystemはPC全体に強い権限を持ちます。EXE・設定・外部DLLの配置先を、信頼できないユーザーが書き換えられないようにしてください。カード接続方式がLocalSystem・サービス環境でも利用できることと、ファイルの読み取り・ログの書き込み権限を確認してください。普段のユーザーで起動したアプリの環境はそのまま引き継がれません。
+
+専用のWindowsユーザーで実行する場合は、新規登録時に `-Credential (Get-Credential)` を追加します。ローカルユーザーは `PC名\ユーザー名` または `.\ユーザー名`、ドメインユーザーは `ドメイン名\ユーザー名` を指定し、PINではなくWindowsパスワードを入力してください。そのユーザーには「サービスとしてログオン」の権利と、必要なファイル・ログ・カードリーダーへのアクセス権限を付与します。
 
 停止は `Stop-Service BonDriverRelay` です。削除する場合は停止後に `sc.exe delete BonDriverRelay` を実行します。更新時もサービス・アプリを停止してからファイルを差し替え、手元のTOML設定を保持してください。
 
