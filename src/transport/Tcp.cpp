@@ -14,6 +14,13 @@ namespace bdr::transport
             throw core::RelayError(core::ErrorCode::LoadFailure, message,
                                    static_cast<std::uint32_t>(WSAGetLastError()));
         }
+        [[noreturn]] void FailListener(const char* operation, const std::string& host, std::uint16_t port)
+        {
+            const auto native_code = static_cast<std::uint32_t>(WSAGetLastError());
+            throw core::RelayError(core::ErrorCode::LoadFailure,
+                                   std::string(operation) + " failed; endpoint=" + host + ":" + std::to_string(port),
+                                   native_code);
+        }
     } // namespace
     Deadline After(std::uint32_t milliseconds)
     {
@@ -120,9 +127,11 @@ namespace bdr::transport
                        sizeof(exclusive)) == SOCKET_ERROR) {
             Fail("Exclusive bind option failed");
         }
-        if (bind(m_socket, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) == SOCKET_ERROR ||
-            listen(m_socket, SOMAXCONN) == SOCKET_ERROR) {
-            Fail("bind/listen failed");
+        if (bind(m_socket, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) == SOCKET_ERROR) {
+            FailListener("bind", host, port);
+        }
+        if (listen(m_socket, SOMAXCONN) == SOCKET_ERROR) {
+            FailListener("listen", host, port);
         }
         SetNonblocking();
     }

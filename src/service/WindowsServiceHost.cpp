@@ -105,13 +105,15 @@ namespace bdr::service
             }
             catch (const std::exception& error) {
                 m_exitCode = 5;
+                const auto* relay_error = dynamic_cast<const core::RelayError*>(&error);
+                const auto native_code = relay_error ? relay_error->GetNativeCode() : 0;
                 try {
                     if (logger) {
-                        logger->Write(core::LogLevel::Error, "-", "service_failure", error.what());
+                        logger->Write(core::LogLevel::Error, "-", "service_failure", error.what(), native_code);
                         logger->Flush();
                     }
                     else {
-                        std::cerr << "ERROR service_failure: " << error.what() << '\n';
+                        std::cerr << "ERROR service_failure: " << error.what() << " win32=" << native_code << '\n';
                     }
                 }
                 catch (...) {
